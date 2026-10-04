@@ -1,0 +1,344 @@
+@import 'tailwindcss';
+@import '@fontsource-variable/jetbrains-mono';
+@import '@fontsource-variable/inter';
+
+@theme {
+  --color-void: var(--c-void);
+  --color-abyss: var(--c-abyss);
+  --color-graphite: var(--c-graphite);
+  --color-smoke: var(--c-smoke);
+  --color-bone: var(--c-bone);
+  --color-accent: var(--c-accent);
+  --color-cyan: var(--c-cyan);
+  --color-coral: var(--c-coral);
+
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, monospace;
+  --font-sans: 'Inter Variable', system-ui, sans-serif;
+}
+
+@layer base {
+  * {
+    border-color: color-mix(in oklab, var(--c-bone) 12%, transparent);
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+    /* iOS rubber-band elimination */
+    overscroll-behavior: none;
+    /* Hide scrollbars globally */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  html::-webkit-scrollbar,
+  body::-webkit-scrollbar,
+  #root::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Hide ALL scrollbars across every element */
+  *::-webkit-scrollbar {
+    display: none;
+  }
+  * {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  body {
+    margin: 0;
+    background: var(--c-void);
+    color: var(--c-bone);
+    font-family: var(--font-sans);
+    overflow: hidden;
+    overscroll-behavior: none;
+    -webkit-font-smoothing: antialiased;
+    /* Respect device safe areas (iPhone notch, Dynamic Island, home bar) */
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+
+  ::selection {
+    background: var(--c-accent);
+    color: var(--c-void);
+  }
+
+  canvas {
+    display: block;
+    touch-action: none;
+  }
+
+  /* Smooth momentum-scroll inside the blade/sheet panel */
+  .blade-scroll {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+}
+
+@utility hud-label {
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--c-hud);
+}
+
+@utility bracket {
+  position: relative;
+
+  &::before,
+  &::after {
+    content: '';
+    position: absolute;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-color: var(--c-accent);
+    border-style: solid;
+    opacity: 0.7;
+  }
+
+  &::before {
+    top: -1px;
+    left: -1px;
+    border-width: 1px 0 0 1px;
+  }
+
+  &::after {
+    right: -1px;
+    bottom: -1px;
+    border-width: 0 1px 1px 0;
+  }
+}
+
+@utility vertical-rl {
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+}
+
+@keyframes scan-sweep {
+  0% {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.5;
+  }
+  90% {
+    opacity: 0.5;
+  }
+  100% {
+    transform: translateY(100vh);
+    opacity: 0;
+  }
+}
+
+@keyframes pulse-node {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.18);
+  }
+}
+
+/* ─── Portal shimmer: animated gradient border conic sweep ─── */
+@keyframes portal-border-spin {
+  0% { --border-angle: 0deg; }
+  100% { --border-angle: 360deg; }
+}
+
+/* ─── Holographic flare: diagonal light streak across chassis ─── */
+@keyframes holo-flare {
+  0%   { transform: translateX(-140%) skewX(-18deg); opacity: 0; }
+  15%  { opacity: 0.55; }
+  55%  { opacity: 0.3; }
+  100% { transform: translateX(240%) skewX(-18deg); opacity: 0; }
+}
+
+/* ─── Vertical scanline sweep inside portal ─── */
+@keyframes portal-scan {
+  0%   { transform: translateY(-100%); opacity: 0; }
+  8%   { opacity: 0.45; }
+  92%  { opacity: 0.45; }
+  100% { transform: translateY(110%); opacity: 0; }
+}
+
+/* ─── Stagger-in: items appear upward with fade ─── */
+@keyframes stagger-in {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── Glitch text: RGB shift clip-path flicker ─── */
+@keyframes glitch-clip {
+  0%   { clip-path: inset(0 0 98% 0); transform: translate(-2px, 0); opacity: 0.8; }
+  15%  { clip-path: inset(35% 0 55% 0); transform: translate(2px, 0);  opacity: 0.6; }
+  30%  { clip-path: inset(70% 0 10% 0); transform: translate(-1px, 0); opacity: 0.9; }
+  50%  { clip-path: inset(0 0 0 0);     transform: translate(0, 0);    opacity: 0;   }
+  100% { clip-path: inset(0 0 0 0);     transform: translate(0, 0);    opacity: 0;   }
+}
+
+/* ─── Data ticker: scrolling horizontal text ─── */
+@keyframes ticker-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+/* ─── Breathing glow pulse on active elements ─── */
+@keyframes glow-breathe {
+  0%,100% { box-shadow: 0 0 10px rgba(0,136,255,0.35), 0 0 20px rgba(0,229,255,0.1); }
+  50%      { box-shadow: 0 0 22px rgba(0,136,255,0.75), 0 0 40px rgba(0,229,255,0.3); }
+}
+
+/* ─── Corner tick pulse ─── */
+@keyframes corner-pulse {
+  0%,100% { opacity: 0.65; }
+  50%      { opacity: 1; filter: drop-shadow(0 0 4px #00e5ff); }
+}
+
+/* ─── Dock item shimmer on hover ─── */
+@keyframes dock-shimmer {
+  from { background-position: -200% center; }
+  to   { background-position: 200% center; }
+}
+
+/* ─── Portal open: zoom-in with upward drift ─── */
+@keyframes portal-open {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -48%) scale(0.93);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+    filter: blur(0);
+  }
+}
+
+/* ─── Backdrop darken in ─── */
+@keyframes fade-in-backdrop {
+  from { opacity: 0; backdrop-filter: blur(0px); }
+  to   { opacity: 1; backdrop-filter: blur(4px); }
+}
+
+/* ─── Cursor blink ─── */
+@keyframes blink {
+  0%,100% { opacity: 1; }
+  50%      { opacity: 0; }
+}
+
+/* ─── Blade open: sleek slide-in from right with blur fade ─── */
+@keyframes blade-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(48px) scale(0.97);
+    filter: blur(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+/* ─── Rail open: slide-in from left with fade ─── */
+@keyframes rail-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(-32px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* ─── Crosshair pulse for spatial viewport markers ─── */
+@keyframes crosshair-spin {
+  0% { transform: rotate(0deg); opacity: 0.4; }
+  50% { opacity: 0.9; }
+  100% { transform: rotate(90deg); opacity: 0.4; }
+}
+
+/* ─── Mobile bottom sheet slide up ─── */
+@keyframes sheet-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(60px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ─── Utility classes ─── */
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Safe area padding for bottom-fixed elements on iOS */
+@utility pb-safe {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+
+@utility pt-safe {
+  padding-top: max(0px, env(safe-area-inset-top));
+}
+
+@utility sheet-open-anim {
+  animation: sheet-slide-up 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@utility blade-open-anim {
+  animation: blade-slide-in 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@utility rail-open-anim {
+  animation: rail-slide-in 0.38s cubic-bezier(0.16, 1, 0.3, 1) 0.05s both;
+}
+
+@utility portal-open-anim {
+  animation: portal-open 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@utility backdrop-open-anim {
+  animation: fade-in-backdrop 0.28s ease forwards;
+}
+
+@utility stagger-1 { animation: stagger-in 0.4s cubic-bezier(0.16,1,0.3,1) 0.05s both; }
+@utility stagger-2 { animation: stagger-in 0.4s cubic-bezier(0.16,1,0.3,1) 0.12s both; }
+@utility stagger-3 { animation: stagger-in 0.4s cubic-bezier(0.16,1,0.3,1) 0.19s both; }
+@utility stagger-4 { animation: stagger-in 0.4s cubic-bezier(0.16,1,0.3,1) 0.26s both; }
+@utility stagger-5 { animation: stagger-in 0.4s cubic-bezier(0.16,1,0.3,1) 0.33s both; }
+
+@utility glow-breathe {
+  animation: glow-breathe 2.8s ease-in-out infinite;
+}
+
+@utility corner-pulse {
+  animation: corner-pulse 2.2s ease-in-out infinite;
+}
+
+@utility cursor-blink {
+  animation: blink 1.1s step-end infinite;
+}
+
+/* Freeze the Three.js canvas during horizontal swipes so touches don't
+   reach R3F pointer events (prevents camera drift & accidental card opens). */
+html.canvas-swipe-lock canvas {
+  pointer-events: none !important;
+  touch-action: none;
+}
