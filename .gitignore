@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Large binary / audio files in project root (kept only in public/music/)
+*.mp3
