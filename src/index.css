@@ -373,6 +373,13 @@
 
 /* Freeze the Three.js canvas during horizontal swipes so touches don't
    reach R3F pointer events (prevents camera drift & accidental card opens). */
+canvas {
+  /* Let the swipe engine own every drag from the very first pixel. Without this
+     mobile browsers claim fast horizontal pans as native scrolls mid-gesture and
+     fire pointercancel, which can swallow or misdirect the card swipe. */
+  touch-action: none;
+}
+
 html.canvas-swipe-lock canvas {
   pointer-events: none !important;
   touch-action: none;
