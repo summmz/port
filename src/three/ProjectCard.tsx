@@ -434,8 +434,11 @@ export function ProjectCard({ card, index, selected, anySelected, onSelect }: Pr
             }}
             onClick={(e) => {
               e.stopPropagation()
-              // Ignore click if a horizontal swipe just completed — prevents
-              // accidental card expansion when the user is scrolling between cards.
+              // A drag/scroll that starts and ends on the card must never open it.
+              // R3F reports pointer travel since pointerdown as e.delta.
+              if (e.delta > 8) return
+              // Ignore click if a horizontal swipe just completed — belt and braces
+              // alongside the delta check above.
               if (swipeLockRef.current) return
               onSelect(selected ? null : card.id)
             }}

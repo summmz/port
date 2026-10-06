@@ -16,6 +16,41 @@
   --font-sans: 'Inter Variable', system-ui, sans-serif;
 }
 
+/* Compact layout for short viewports — landscape phones keep the same UX,
+   just tightened (header, dock, capsule). */
+@custom-variant short (@media (max-height: 520px));
+
+/* ─── Enter animations ───────────────────────────────────────────────────────
+   tw-animate-css is deliberately not a dependency, so the `animate-in` /
+   `fade-in` / `zoom-in-95` utility names are provided here instead. */
+@keyframes fade-in-anim {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes zoom-fade-in-anim {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@utility fade-in-anim {
+  animation: fade-in-anim 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@utility zoom-fade-in-anim {
+  animation: zoom-fade-in-anim 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
 @layer base {
   * {
     border-color: color-mix(in oklab, var(--c-bone) 12%, transparent);

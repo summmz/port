@@ -8,6 +8,8 @@ import { swipeLockRef } from '../lib/swipeLock'
 interface HudProps {
   section: SectionId
   onNavigate: (id: SectionId) => void
+  /** Browse-only: move the camera to a section without opening the blade. */
+  onBrowse: (id: SectionId) => void
   gpu: GpuReport
   webgpu: 'available' | 'unavailable' | 'unknown'
   perf: PerfState
@@ -206,6 +208,7 @@ const TICKER_FULL = TICKER_TEXT.repeat(4)
 export function Hud({
   section,
   onNavigate,
+  onBrowse,
   gpu,
   webgpu,
   perf,
@@ -240,101 +243,99 @@ export function Hud({
     onNavigate(id)
   }
 
-  const handleNextNode = () => {
-    const nextIdx = (activeIdx + 1) % hubCards.length
-    const nextCard = hubCards[nextIdx]
+  /**
+   * Cycles to an adjacent card. With a card open the blade switches content in
+   * place; with nothing open it only browses — camera glides, blade stays shut.
+   */
+  const goToCard = (dir: 1 | -1) => {
+    const idx = (activeIdx + dir + hubCards.length) % hubCards.length
+    const card = hubCards[idx]
     audio.playWhoosh()
-    onNavigate(nextCard.id)
-    if (selected) onSelect(nextCard.id)
+    if (selected) {
+      onNavigate(card.id)
+      onSelect(card.id)
+    } else {
+      onBrowse(card.id)
+    }
   }
 
-  const handlePrevNode = () => {
-    const prevIdx = (activeIdx - 1 + hubCards.length) % hubCards.length
-    const prevCard = hubCards[prevIdx]
-    audio.playWhoosh()
-    onNavigate(prevCard.id)
-    if (selected) onSelect(prevCard.id)
-  }
+  const handleNextNode = () => goToCard(1)
+  const handlePrevNode = () => goToCard(-1)
 
-  // Touch swipe support for mobile: swipe left/right to glide between 3D cards.
-  // Uses non-passive touchmove so we can preventDefault (stops camera drift)
-  // and sets swipeLockRef so ProjectCard never opens on swipe.
+  // Drag-to-switch for touch AND mouse: a horizontal drag glides between the 3D
+  // cards. Any drag past 8px locks the canvas so R3F never treats the gesture as
+  // a tap — scrolling/scrubbing over a card must not open it.
   useEffect(() => {
+    let activePointer = -1
     let startX = 0
     let startY = 0
-    let intentLocked = false   // once we know it's a horizontal swipe
-    let didSwipe = false
+    let intentLocked = false // once we know the gesture is a drag
+
+    const blocked = () => selected || showMusicPlayer || showSettings
 
     const lockCanvas = () => {
       swipeLockRef.current = true
       document.documentElement.classList.add('canvas-swipe-lock')
     }
     const unlockCanvas = () => {
-      // Keep lock alive for one extra frame so R3F's onClick can see it
+      // Keep the lock alive past pointerup so the synthesized click that follows
+      // still sees it (R3F dispatches onClick after pointerup).
       requestAnimationFrame(() => {
         swipeLockRef.current = false
         document.documentElement.classList.remove('canvas-swipe-lock')
       })
     }
 
-    const onTouchStart = (e: TouchEvent) => {
-      if (e.touches.length !== 1) return
-      startX = e.touches[0].clientX
-      startY = e.touches[0].clientY
+    const onPointerDown = (e: PointerEvent) => {
+      if (activePointer !== -1 || blocked() || !e.isPrimary) return
+      if (e.pointerType === 'mouse' && e.button !== 0) return
+      // Only gestures that begin on the 3D scene — HUD buttons keep their clicks.
+      if ((e.target as HTMLElement | null)?.tagName !== 'CANVAS') return
+      activePointer = e.pointerId
+      startX = e.clientX
+      startY = e.clientY
       intentLocked = false
-      didSwipe = false
     }
 
-    const onTouchMove = (e: TouchEvent) => {
-      if (e.touches.length !== 1 || selected || showMusicPlayer || showSettings) return
-      const dx = e.touches[0].clientX - startX
-      const dy = e.touches[0].clientY - startY
+    const onPointerMove = (e: PointerEvent) => {
+      if (e.pointerId !== activePointer || blocked()) return
+      const dx = e.clientX - startX
+      const dy = e.clientY - startY
 
       if (!intentLocked) {
-        // Decide swipe vs scroll before committing
         if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return
-        if (Math.abs(dx) > Math.abs(dy) * 1.2) {
-          intentLocked = true
-          lockCanvas()
-          // Prevent the browser from passing this touch to the canvas / scroll
-          e.preventDefault()
-        } else {
-          // Vertical — leave it alone
-          intentLocked = true
-        }
-      } else if (swipeLockRef.current) {
-        e.preventDefault()
+        intentLocked = true
+        lockCanvas()
       }
+      // Non-passive listener: freeze the canvas so R3F parallax ignores the drag
+      if (swipeLockRef.current) e.preventDefault()
     }
 
-    const onTouchEnd = (e: TouchEvent) => {
-      if (e.changedTouches.length !== 1) return
-      const dx = e.changedTouches[0].clientX - startX
-      const dy = e.changedTouches[0].clientY - startY
-      const isHorizontalSwipe = Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.4
+    const finish = (e: PointerEvent) => {
+      if (e.pointerId !== activePointer) return
+      activePointer = -1
+      const dx = e.clientX - startX
+      const dy = e.clientY - startY
+      const isHorizontalDrag =
+        swipeLockRef.current && Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.4
 
-      if (swipeLockRef.current && isHorizontalSwipe && !selected && !showMusicPlayer && !showSettings) {
-        didSwipe = true
+      if (isHorizontalDrag && !blocked()) {
         if (dx < 0) handleNextNode()
         else handlePrevNode()
       }
-
       unlockCanvas()
-      void didSwipe // suppress lint
     }
 
-    const onTouchCancel = () => unlockCanvas()
-
-    window.addEventListener('touchstart', onTouchStart, { passive: true })
-    // Non-passive so we can preventDefault to freeze the canvas during swipes
-    window.addEventListener('touchmove', onTouchMove, { passive: false })
-    window.addEventListener('touchend', onTouchEnd, { passive: true })
-    window.addEventListener('touchcancel', onTouchCancel, { passive: true })
+    window.addEventListener('pointerdown', onPointerDown, { passive: true })
+    // Non-passive so we can preventDefault to freeze the canvas during drags
+    window.addEventListener('pointermove', onPointerMove, { passive: false })
+    window.addEventListener('pointerup', finish, { passive: true })
+    window.addEventListener('pointercancel', finish, { passive: true })
     return () => {
-      window.removeEventListener('touchstart', onTouchStart)
-      window.removeEventListener('touchmove', onTouchMove)
-      window.removeEventListener('touchend', onTouchEnd)
-      window.removeEventListener('touchcancel', onTouchCancel)
+      window.removeEventListener('pointerdown', onPointerDown)
+      window.removeEventListener('pointermove', onPointerMove)
+      window.removeEventListener('pointerup', finish)
+      window.removeEventListener('pointercancel', finish)
       unlockCanvas()
     }
   }, [selected, showMusicPlayer, showSettings, section, activeIdx])
@@ -396,9 +397,9 @@ export function Hud({
       {/* ========================================================================= */}
       {/* 1. TOP HEADER (Refined Minimalist Luxury)                                  */}
       {/* ========================================================================= */}
-      <header className="absolute top-0 left-0 right-0 p-3.5 sm:p-6 md:p-8 flex items-center sm:items-start justify-between pointer-events-auto z-20">
+      <header className="absolute top-[env(safe-area-inset-top)] left-0 right-0 p-3.5 sm:p-6 md:p-8 short:p-3! flex items-center sm:items-start justify-between pointer-events-auto z-20">
         {/* Top-Left: Brand & Japanese Identity */}
-        <div className="flex flex-col">
+        <div className="flex flex-col pl-[env(safe-area-inset-left)]">
           <button
             onClick={() => {
               audio.playClick()
@@ -407,28 +408,28 @@ export function Hud({
             className="text-left group"
           >
             <div className="relative">
-              <h1 className="font-mono text-xl sm:text-2xl md:text-3xl font-black tracking-wider text-accent flex items-center gap-1.5 group-hover:text-white transition-colors duration-200">
+              <h1 className="font-mono text-xl sm:text-2xl md:text-3xl short:text-lg! font-black tracking-wider text-accent flex items-center gap-1.5 group-hover:text-white transition-colors duration-200">
                 SMSY <span className="text-xs sm:text-sm font-normal align-super">©</span> 26'
               </h1>
               <h1
                 aria-hidden="true"
-                className="font-mono text-xl sm:text-2xl md:text-3xl font-black tracking-wider text-cyan flex items-center gap-1.5 absolute top-0 left-0 pointer-events-none opacity-0 group-hover:opacity-100"
+                className="font-mono text-xl sm:text-2xl md:text-3xl short:text-lg! font-black tracking-wider text-cyan flex items-center gap-1.5 absolute top-0 left-0 pointer-events-none opacity-0 group-hover:opacity-100"
                 style={{ animation: 'glitch-clip 0.5s steps(1) infinite', mixBlendMode: 'screen' as const }}
               >
                 SMSY <span className="text-xs sm:text-sm font-normal align-super">©</span> 26'
               </h1>
             </div>
-            <span className="font-sans text-[0.62rem] sm:text-[0.7rem] font-bold text-cyan tracking-wide mt-0.5 block">
+            <span className="font-sans text-[0.625rem] sm:text-[0.7rem] font-bold text-cyan tracking-wide mt-0.5 block">
               クリエイティブ テクノロジスト
             </span>
           </button>
-          <p className="font-mono text-[0.62rem] font-semibold text-white/50 tracking-widest mt-1 uppercase hidden sm:block">
+          <p className="font-mono text-[0.625rem] font-semibold text-white/50 tracking-widest mt-1 uppercase hidden sm:block short:hidden!">
             CREATIVE DEVELOPMENT • WEBGPU ARCHITECTURE
           </p>
         </div>
 
         {/* Top-Center: Nav Switcher (Desktop Only) */}
-        <nav className="hidden sm:flex absolute left-1/2 -translate-x-1/2 top-4 sm:top-6 md:top-8 items-center gap-1 bg-black/70 backdrop-blur-xl border border-accent/40 rounded-full p-1 sm:p-1.5 shadow-[0_0_24px_rgba(0,136,255,0.25)] z-20">
+        <nav className="hidden sm:flex absolute left-1/2 -translate-x-1/2 top-4 sm:top-6 md:top-8 short:top-2! items-center gap-1 bg-black/70 backdrop-blur-xl border border-accent/40 rounded-full p-1 sm:p-1.5 shadow-[0_0_24px_rgba(0,136,255,0.25)] z-20">
           <button
             onClick={() => {
               audio.playClick()
@@ -462,7 +463,7 @@ export function Hud({
         </nav>
 
         {/* Top-Right: Mobile Unified Glass Pill & Desktop Diagnostics */}
-        <div className="flex items-center gap-1.5 sm:gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2 pr-[env(safe-area-inset-right)]">
           {/* Mobile-Only Minimalist Glass Capsule */}
           <div className="flex sm:hidden items-center bg-[#070e1e]/80 backdrop-blur-xl border border-cyan/35 rounded-full px-2.5 py-1 gap-2 shadow-[0_0_16px_rgba(0,136,255,0.3)]">
             {/* Audio Indicator / Toggle */}
@@ -471,7 +472,7 @@ export function Hud({
                 audio.playClick()
                 bgMusic.togglePlay()
               }}
-              className="flex items-center gap-1 text-cyan active:scale-90 transition-transform"
+              className="flex items-center gap-1 p-1.5 text-cyan active:scale-90 transition-transform"
               title={bgMusic.isPlaying ? 'Pause Background Music' : 'Play Background Music'}
             >
               {bgMusic.isPlaying ? (
@@ -491,7 +492,7 @@ export function Hud({
                 audio.playClick()
                 setShowMusicPlayer(true)
               }}
-              className="font-mono text-[0.58rem] font-bold text-white/70 hover:text-cyan border-l border-white/15 pl-2 max-w-[70px] truncate"
+              className="font-mono text-[0.625rem] font-bold text-white/70 hover:text-cyan border-l border-white/15 pl-2 py-1.5 max-w-[70px] truncate"
               title="Open Track Player"
             >
               {bgMusic.isPlaying ? bgMusic.currentTrack.title : 'AUDIO'}
@@ -503,7 +504,7 @@ export function Hud({
                 audio.playClick()
                 setShowSettings(!showSettings)
               }}
-              className="text-cyan/80 hover:text-white text-xs border-l border-white/15 pl-1.5 active:scale-90"
+              className="text-cyan/80 hover:text-white text-xs border-l border-white/15 p-1.5 pl-2 active:scale-90"
               title="System Diagnostics"
             >
               ⚙
@@ -519,7 +520,7 @@ export function Hud({
                 <span className="cursor-blink text-cyan">_</span>
               </span>
             </div>
-            <span className="font-mono text-[0.58rem] text-white/30 tracking-wide mt-0.5">
+            <span className="font-mono text-[0.625rem] text-white/30 tracking-wide mt-0.5">
               {(1000 / Math.max(1, perf.fps)).toFixed(1)} ms/frame
             </span>
           </div>
@@ -530,20 +531,20 @@ export function Hud({
       {/* 2. MOBILE FLOATING CYBER NAVIGATION CAPSULE (VisionOS / Futuristic Style)  */}
       {/* ========================================================================= */}
       {!selected && (
-        <div className="sm:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-25 pointer-events-auto flex flex-col items-center gap-2.5 animate-in fade-in duration-300">
+        <div className="sm:hidden fixed bottom-[calc(1.5rem_+_env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 z-25 pointer-events-auto flex flex-col items-center gap-2.5 max-w-[calc(100vw_-_1.5rem)] fade-in-anim">
           {/* Swipe Hint */}
-          <div className="flex items-center gap-1.5 font-mono text-[0.55rem] text-white/35 tracking-widest uppercase select-none">
+          <div className="flex items-center gap-1.5 font-mono text-[0.625rem] text-white/35 tracking-widest uppercase select-none">
             <span className="opacity-60">←</span>
             <span>swipe or tap to explore</span>
             <span className="opacity-60">→</span>
           </div>
 
           {/* Pill Capsule */}
-          <div className="flex items-center gap-2 bg-[#060c1c]/92 backdrop-blur-2xl border border-cyan/40 rounded-full px-3 py-1.5 shadow-[0_10px_36px_rgba(0,136,255,0.45),inset_0_1px_0_rgba(0,229,255,0.4)]">
+          <div className="flex items-center gap-2 max-w-full bg-[#060c1c]/92 backdrop-blur-2xl border border-cyan/40 rounded-full px-3 py-1.5 shadow-[0_10px_36px_rgba(0,136,255,0.45),inset_0_1px_0_rgba(0,229,255,0.4)]">
             {/* Prev Button */}
             <button
               onClick={() => handlePrevNode()}
-              className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/15 active:scale-85 text-white/80 hover:text-cyan flex items-center justify-center font-mono text-base font-bold transition-all"
+              className="w-10 h-10 shrink-0 rounded-full bg-white/5 hover:bg-white/15 active:scale-85 text-white/80 hover:text-cyan flex items-center justify-center font-mono text-lg font-bold transition-all"
               aria-label="Previous Section"
             >
               ‹
@@ -552,12 +553,14 @@ export function Hud({
             {/* Current Section Info */}
             <button
               onClick={() => handleOpenCard(currentHubCard.id)}
-              className="flex flex-col items-center px-2 active:scale-95 transition-transform"
+              className="flex flex-col items-center px-2 min-w-0 active:scale-95 transition-transform"
             >
-              <div className="flex items-center gap-1.5 font-mono text-[0.72rem] font-bold text-white tracking-wider">
-                <span className="text-cyan text-[0.62rem]">{currentHubCard.code}</span>
-                <span>{currentHubCard.title.split(' ')[0]}</span>
-                <span className="text-[0.62rem] font-sans text-cyan/70 font-normal">{currentHubCard.kanji}</span>
+              <div className="flex items-center gap-1.5 font-mono text-[0.72rem] font-bold text-white tracking-wider max-w-[7rem] min-w-0">
+                <span className="text-cyan text-[0.625rem] shrink-0">{currentHubCard.code}</span>
+                <span className="truncate">{currentHubCard.title.split(' ')[0]}</span>
+                <span className="text-[0.625rem] font-sans text-cyan/70 font-normal shrink-0">
+                  {currentHubCard.kanji}
+                </span>
               </div>
               {/* Progress Micro-Dashes */}
               <div className="flex items-center gap-1 mt-1">
@@ -577,21 +580,22 @@ export function Hud({
             {/* Next Button */}
             <button
               onClick={() => handleNextNode()}
-              className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/15 active:scale-85 text-white/80 hover:text-cyan flex items-center justify-center font-mono text-base font-bold transition-all"
+              className="w-10 h-10 shrink-0 rounded-full bg-white/5 hover:bg-white/15 active:scale-85 text-white/80 hover:text-cyan flex items-center justify-center font-mono text-lg font-bold transition-all"
               aria-label="Next Section"
             >
               ›
             </button>
 
             {/* Divider */}
-            <span className="w-px h-5 bg-white/15" />
+            <span className="w-px h-5 bg-white/15 shrink-0" />
 
             {/* EXPAND Button */}
             <button
               onClick={() => handleOpenCard(currentHubCard.id)}
-              className="px-3.5 py-1.5 rounded-full bg-gradient-to-r from-accent to-cyan text-void font-mono text-[0.68rem] font-black uppercase tracking-wider shadow-[0_0_16px_rgba(0,229,255,0.7)] active:scale-90 transition-all duration-150 flex items-center gap-1.5 hover:shadow-[0_0_24px_rgba(0,229,255,0.9)]"
+              aria-label="Expand current card"
+              className="shrink-0 min-h-9 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-accent to-cyan text-void font-mono text-[0.68rem] font-black uppercase tracking-wider shadow-[0_0_16px_rgba(0,229,255,0.7)] active:scale-90 transition-all duration-150 flex items-center gap-1.5 hover:shadow-[0_0_24px_rgba(0,229,255,0.9)]"
             >
-              <span>EXPAND</span>
+              <span className="max-[360px]:hidden">EXPAND</span>
               <span className="text-[0.75rem] font-normal">⤢</span>
             </button>
           </div>
@@ -602,10 +606,10 @@ export function Hud({
       {/* 3. DESKTOP BOTTOM CARD SELECTOR / ARC DOCK                                */}
       {/* ========================================================================= */}
       <footer className="absolute bottom-0 left-0 right-0 hidden sm:flex flex-col pointer-events-auto pb-safe z-20">
-        {/* Scrolling data ticker strip */}
-        <div className="w-full overflow-hidden border-t border-accent/20 bg-black/85 backdrop-blur-md py-1 flex items-center">
+        {/* Scrolling data ticker strip — hidden on short (landscape) viewports */}
+        <div className="w-full overflow-hidden border-t border-accent/20 bg-black/85 backdrop-blur-md py-1 flex items-center short:hidden!">
           <div
-            className="whitespace-nowrap font-mono text-[0.6rem] text-accent/70 tracking-widest"
+            className="whitespace-nowrap font-mono text-[0.625rem] text-accent/70 tracking-widest"
             style={{ animation: 'ticker-scroll 30s linear infinite', display: 'inline-block' }}
           >
             {TICKER_FULL}
@@ -613,7 +617,7 @@ export function Hud({
         </div>
 
         {/* Card dock row */}
-        <div className="flex items-center justify-between px-6 md:px-12 py-3 bg-black/70 backdrop-blur-xl border-t border-accent/25 gap-2">
+        <div className="flex items-center justify-between pl-[max(1.5rem,env(safe-area-inset-left))] pr-[max(1.5rem,env(safe-area-inset-right))] md:pl-[max(3rem,env(safe-area-inset-left))] md:pr-[max(3rem,env(safe-area-inset-right))] py-3 short:py-1.5! bg-black/70 backdrop-blur-xl border-t border-accent/25 gap-2">
           {/* Left: Quick Card Carousel Navigator */}
           <div className="flex items-center gap-2 overflow-x-auto py-1 scrollbar-none flex-1 min-w-0 mr-3">
             <button
@@ -632,19 +636,21 @@ export function Hud({
             </button>
 
             {hubCards.map((card, i) => {
-              const isSelected = selected === card.id
+              // Highlight when browsed-to OR open; only collapse when it's the open one.
+              const isOpen = selected === card.id
+              const isCurrent = isOpen || section === card.id
               return (
                 <button
                   key={card.id}
                   onClick={() => {
-                    if (isSelected) {
+                    if (isOpen) {
                       handleClose()
                     } else {
                       handleOpenCard(card.id)
                     }
                   }}
                   className={`group relative flex items-center gap-2 px-3.5 py-2 rounded-lg font-mono text-xs font-bold transition-all duration-200 border overflow-hidden whitespace-nowrap flex-shrink-0 active:scale-95 ${
-                    isSelected
+                    isCurrent
                       ? 'bg-accent text-white border-cyan shadow-[0_0_20px_rgba(0,136,255,0.75)]'
                       : 'bg-black/60 text-white/70 border-white/10 hover:border-accent/60 hover:text-white hover:bg-accent/10'
                   }`}
@@ -655,7 +661,7 @@ export function Hud({
                   <span className="text-[0.68rem] font-sans text-white/40 relative z-10">{card.kanji}</span>
                   <span
                     className={`absolute bottom-0 left-0 h-[2px] bg-gradient-to-r from-accent to-cyan transition-all duration-300 ${
-                      isSelected ? 'w-full' : 'w-0 group-hover:w-full'
+                      isCurrent ? 'w-full' : 'w-0 group-hover:w-full'
                     }`}
                   />
                 </button>
@@ -734,13 +740,13 @@ export function Hud({
 
       {/* Settings Modal (Responsive) */}
       {showSettings && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-3 sm:p-0 pointer-events-auto animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-3 sm:p-0 pointer-events-auto fade-in-anim">
           <div
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             onClick={() => setShowSettings(false)}
             title="Click backdrop to close"
           />
-          <div className="relative w-full max-w-sm sm:w-80 bg-black/95 border border-accent/70 rounded-2xl p-4 sm:p-5 backdrop-blur-xl shadow-[0_0_36px_rgba(0,136,255,0.35)] stagger-1 mb-16 sm:mb-0 sm:absolute sm:bottom-24 sm:right-8">
+          <div className="relative w-full max-w-sm sm:w-80 bg-black/95 border border-accent/70 rounded-2xl p-4 sm:p-5 backdrop-blur-xl shadow-[0_0_36px_rgba(0,136,255,0.35)] sheet-open-anim mb-[calc(4rem_+_env(safe-area-inset-bottom))] sm:mb-0 sm:absolute sm:bottom-24 sm:right-8">
             <div className="flex items-center justify-between border-b border-accent/30 pb-2 mb-3">
               <span className="font-mono text-xs font-bold text-cyan uppercase tracking-wider flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-cyan animate-pulse" />
@@ -748,7 +754,7 @@ export function Hud({
               </span>
               <button
                 onClick={() => setShowSettings(false)}
-                className="w-6 h-6 rounded-full bg-white/10 hover:bg-white/20 text-white/70 hover:text-white flex items-center justify-center font-mono text-xs transition-colors"
+                className="w-8 h-8 -m-1 rounded-full bg-white/10 hover:bg-white/20 text-white/70 hover:text-white flex items-center justify-center font-mono text-xs transition-colors"
               >
                 ✕
               </button>
@@ -850,7 +856,7 @@ export function Hud({
 
             {/* Quick Node Switcher Vertical Pill Deck */}
             <div className="flex flex-col gap-1.5 p-3 rounded-xl bg-[#060913]/85 border border-accent/35 backdrop-blur-xl shadow-[0_0_20px_rgba(0,136,255,0.15)]">
-              <span className="font-mono text-[0.62rem] text-white/50 tracking-wider mb-1 px-1">
+              <span className="font-mono text-[0.625rem] text-white/50 tracking-wider mb-1 px-1">
                 SWITCH NODE // 1-5
               </span>
               {hubCards.map((card, idx) => {
@@ -885,7 +891,7 @@ export function Hud({
             >
               <span>✕</span>
               <span>RETURN TO ORBIT</span>
-              <span className="text-[0.6rem] text-white/60 bg-black/50 px-1.5 py-0.5 rounded border border-white/20">
+              <span className="text-[0.625rem] text-white/60 bg-black/50 px-1.5 py-0.5 rounded border border-white/20">
                 ESC
               </span>
             </button>
@@ -894,7 +900,7 @@ export function Hud({
           {/* RIGHT / CENTER: Aesthetic Expanded Floating Hologram Card */}
           <section
             aria-label="Node Inspector"
-            className="fixed inset-3 bottom-5 top-16 sm:inset-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 w-auto sm:w-[600px] md:w-[680px] max-h-[88dvh] z-40 pointer-events-auto flex flex-col bg-gradient-to-b from-[#0a1428]/95 via-[#060c1c]/98 to-[#030610]/99 backdrop-blur-3xl border border-cyan/40 rounded-[26px] sm:rounded-3xl shadow-[0_0_80px_rgba(0,102,255,0.5),inset_0_1px_0_rgba(0,240,255,0.5)] overflow-hidden animate-in fade-in zoom-in-95 duration-300"
+            className="fixed inset-3 bottom-[calc(1.25rem_+_env(safe-area-inset-bottom))] top-[calc(env(safe-area-inset-top)_+_4rem)] sm:inset-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 lg:left-[calc(50%_+_110px)] xl:left-1/2 w-auto sm:w-[600px] md:w-[680px] max-h-[88dvh] z-40 pointer-events-auto flex flex-col bg-gradient-to-b from-[#0a1428]/95 via-[#060c1c]/98 to-[#030610]/99 backdrop-blur-3xl border border-cyan/40 rounded-[26px] sm:rounded-3xl shadow-[0_0_80px_rgba(0,102,255,0.5),inset_0_1px_0_rgba(0,240,255,0.5)] overflow-hidden blade-open-anim"
           >
             {/* Top glowing cyan edge accent */}
             <div className="h-[2px] w-full bg-gradient-to-r from-accent via-cyan to-accent" />
@@ -908,7 +914,7 @@ export function Hud({
             {/* Blade Header */}
             <header className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-accent/25 flex items-center justify-between bg-black/40 flex-shrink-0">
               <div>
-                <div className="flex items-center gap-2 font-mono text-[0.62rem] sm:text-[0.68rem] text-cyan font-bold tracking-wider">
+                <div className="flex items-center gap-2 font-mono text-[0.625rem] sm:text-[0.68rem] text-cyan font-bold tracking-wider">
                   <span className="w-2 h-2 rounded-full bg-cyan animate-pulse shadow-[0_0_8px_#00e5ff]" />
                   <span>SEC.{activeCard.code.replace('HUB-', '')} // {activeCard.kanji}</span>
                   <span className="text-white/30">•</span>
@@ -1177,17 +1183,17 @@ export function Hud({
               <div className="flex items-center gap-1.5">
                 <button
                   onClick={handlePrevNode}
-                  className="w-7 h-7 rounded-full bg-white/5 hover:bg-accent/20 border border-white/10 hover:border-cyan/50 text-white/60 hover:text-cyan flex items-center justify-center font-mono text-sm transition-all active:scale-90"
+                  className="w-9 h-9 rounded-full bg-white/5 hover:bg-accent/20 border border-white/10 hover:border-cyan/50 text-white/60 hover:text-cyan flex items-center justify-center font-mono text-sm transition-all active:scale-90"
                   aria-label="Previous card"
                 >
                   ‹
                 </button>
-                <span className="font-mono text-[0.6rem] text-white/30 tracking-wider">
+                <span className="font-mono text-[0.625rem] text-white/30 tracking-wider">
                   {String(activeIdx + 1).padStart(2, '0')} / {String(hubCards.length).padStart(2, '0')}
                 </span>
                 <button
                   onClick={handleNextNode}
-                  className="w-7 h-7 rounded-full bg-white/5 hover:bg-accent/20 border border-white/10 hover:border-cyan/50 text-white/60 hover:text-cyan flex items-center justify-center font-mono text-sm transition-all active:scale-90"
+                  className="w-9 h-9 rounded-full bg-white/5 hover:bg-accent/20 border border-white/10 hover:border-cyan/50 text-white/60 hover:text-cyan flex items-center justify-center font-mono text-sm transition-all active:scale-90"
                   aria-label="Next card"
                 >
                   ›
@@ -1201,7 +1207,7 @@ export function Hud({
               >
                 <span className="text-[0.65rem] group-hover:text-accent transition-colors">✕</span>
                 <span>COLLAPSE CARD</span>
-                <span className="text-[0.6rem] text-white/30 bg-black/40 px-1.5 py-0.5 rounded border border-white/15">ESC</span>
+                <span className="text-[0.625rem] text-white/30 bg-black/40 px-1.5 py-0.5 rounded border border-white/15">ESC</span>
               </button>
 
               {/* Right: play/pause mini control */}
@@ -1233,7 +1239,7 @@ export function Hud({
       {/* 4. FLOATING MUSIC PLAYER MODAL (Nazia-99 / Cyber Theme)                    */}
       {/* ========================================================================= */}
       {showMusicPlayer && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/70 backdrop-blur-md pointer-events-auto animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/70 backdrop-blur-md pointer-events-auto fade-in-anim">
           <div
             className="absolute inset-0"
             onClick={() => setShowMusicPlayer(false)}

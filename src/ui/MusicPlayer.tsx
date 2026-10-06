@@ -71,7 +71,7 @@ export function MusicPlayer({ player, onClose, isModal = false, compact = false 
       onPointerUp={handlePointerUp}
       className={`relative z-30 w-full rounded-[22px] border border-accent/40 bg-gradient-to-br from-[#0c1322]/95 to-[#050811]/98 backdrop-blur-2xl shadow-[inset_0_1px_0_rgba(0,229,255,0.25),0_0_40px_rgba(0,136,255,0.25)] select-none text-white max-h-[88dvh] overflow-y-auto blade-scroll ${
         compact ? 'p-3.5 sm:p-5 max-w-full' : 'max-w-3xl p-4 sm:p-7'
-      } ${isModal ? 'animate-in fade-in zoom-in-95 duration-200' : ''}`}
+      } ${isModal ? 'zoom-fade-in-anim' : ''}`}
     >
       {/* Top HUD Frame Details */}
       <div className="flex items-center justify-between border-b border-accent/20 pb-3 mb-4 sm:mb-5">
@@ -80,7 +80,7 @@ export function MusicPlayer({ player, onClose, isModal = false, compact = false 
           <span className="truncate">AUDIO CORE // BGM</span>
         </div>
         <div className="flex items-center gap-2.5">
-          <span className="font-mono text-[0.6rem] sm:text-[0.65rem] text-white/50 tracking-wider hidden xs:inline">
+          <span className="font-mono text-[0.625rem] sm:text-[0.65rem] text-white/50 tracking-wider hidden sm:inline">
             {volume <= 0.25 ? '[AMBIENT]' : '[DIRECT]'}
           </span>
           {onClose && (
@@ -308,10 +308,10 @@ export function MusicPlayer({ player, onClose, isModal = false, compact = false 
           <div>
             <div className="font-mono text-[0.72rem] text-cyan/70 tracking-widest uppercase mb-3 flex items-center justify-between">
               <span>UP NEXT // TRANSMISSION QUEUE</span>
-              <span className="text-[0.62rem] text-white/40">6 TRACKS</span>
+              <span className="text-[0.625rem] text-white/40">6 TRACKS</span>
             </div>
 
-            <ul className="flex flex-col gap-1.5 max-h-64 sm:max-h-72 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-accent/40">
+            <ul className="flex flex-col gap-1.5 max-h-64 sm:max-h-72 overflow-y-auto pr-1 scrollbar-none">
               {playlist.map((track: Track, idx: number) => {
                 const isActive = idx === currentIndex
                 return (
@@ -365,7 +365,7 @@ export function MusicPlayer({ player, onClose, isModal = false, compact = false 
             </ul>
           </div>
 
-          <div className="mt-4 pt-3 border-t border-accent/20 flex items-center justify-between font-mono text-[0.62rem] text-white/40">
+          <div className="mt-4 pt-3 border-t border-accent/20 flex items-center justify-between font-mono text-[0.625rem] text-white/40">
             <span>BITRATE: 320 KBPS AAC/MP3</span>
             <span className="text-cyan">ELEVATOR AUDIO MATRIX</span>
           </div>

@@ -59,6 +59,12 @@ export default function App() {
     else setSelected(null)
   }, [])
 
+  /** Browse-only navigation: glides the camera to a section without opening the blade. */
+  const handleBrowse = useCallback((id: SectionId) => {
+    setSection(id)
+    setSelected(null)
+  }, [])
+
   return (
     <ErrorBoundary>
       <Canvas
@@ -92,6 +98,7 @@ export default function App() {
       <Hud
         section={section}
         onNavigate={handleNavigate}
+        onBrowse={handleBrowse}
         gpu={gpu}
         webgpu={webgpu}
         perf={perf}

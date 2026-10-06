@@ -31,6 +31,35 @@ export function CameraRig({
   const lookTarget = useRef(new THREE.Vector3())
   const smoothLook = useRef(new THREE.Vector3(...DEFAULTS.look))
 
+  // Live viewport size so rotating the device re-frames immediately instead of
+  // waiting for the next navigation (breakpoints were previously read once).
+  const [viewport, setViewport] = useState(() => ({
+    w: window.innerWidth,
+    h: window.innerHeight,
+  }))
+
+  useEffect(() => {
+    let raf = 0
+    const update = () => {
+      raf = 0
+      setViewport((v) =>
+        v.w === window.innerWidth && v.h === window.innerHeight
+          ? v
+          : { w: window.innerWidth, h: window.innerHeight },
+      )
+    }
+    const onResize = () => {
+      if (!raf) raf = requestAnimationFrame(update)
+    }
+    window.addEventListener('resize', onResize)
+    window.addEventListener('orientationchange', onResize)
+    return () => {
+      window.removeEventListener('resize', onResize)
+      window.removeEventListener('orientationchange', onResize)
+      if (raf) cancelAnimationFrame(raf)
+    }
+  }, [])
+
   // Mouse wheel scroll to smoothly zoom in/out — disabled while a card is selected
   // so the Blade sheet scroll doesn't also move the camera behind it.
   useEffect(() => {
@@ -45,8 +74,9 @@ export function CameraRig({
   useEffect(() => {
     const targetSection = (selected as SectionId) || section
     const target = RIGS[targetSection] ?? RIGS.home
-    const isDesktop = window.innerWidth >= 1024
-    const isMobile = window.innerWidth < 640
+    const isDesktop = viewport.w >= 1024
+    const isMobile = viewport.w < 640
+    const isTablet = !isDesktop && !isMobile // 640–1023 previously hit no branch
 
     let px = target.pos[0]
     let py = target.pos[1]
@@ -65,6 +95,11 @@ export function CameraRig({
         pz += 2.2
         py += 0.4
         ly += 0.15
+      } else {
+        // Tablet: moderate back-off so the centered blade doesn't swallow the card
+        pz += 1.6
+        py += 0.25
+        ly += 0.1
       }
     }
 
@@ -75,7 +110,7 @@ export function CameraRig({
       lx,
       ly,
       lz,
-      drift: isMobile ? 0.08 : target.drift,
+      drift: isMobile ? 0.08 : isTablet ? 0.2 : target.drift,
       duration: 1.4,
       ease: 'power3.inOut',
       overwrite: 'auto',
@@ -84,7 +119,7 @@ export function CameraRig({
     return () => {
       tween.kill()
     }
-  }, [section, selected])
+  }, [section, selected, viewport])
 
   useFrame((state) => {
     const r = rig.current
