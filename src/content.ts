@@ -37,7 +37,7 @@ export interface LabNote {
 export const identity = {
   name: 'Sumit',
   handle: '@summmz',
-  role: 'Full-Stack Developer',
+  role: 'Full-Stack Developer // WebGPU & 3D Interactive',
   location: 'Remote',
   year: 2026,
   email: 'isumit7869@gmail.com',
@@ -48,13 +48,13 @@ export const identity = {
   ],
   bioEn: [
     'I’m a college student and full-stack developer who likes shipping real projects rather than endless tutorials. I work across the stack with JavaScript, TypeScript, React, Node.js and Express, backed by MongoDB and PostgreSQL.',
-    'Right now I’m deepening my backend fundamentals and system design, while publicly building and deploying projects on GitHub and Vercel.',
-    'Open to work and internships. My rule is simple — consistency beats motivation.',
+    'Beyond the backend I build WebGPU-powered 3D interactive sites and real-time web experiences — this very portfolio renders live WebGL/WebGPU scenes with a spatial audio core.',
+    'Right now I’m deepening my backend fundamentals and system design while publicly building and deploying projects on GitHub and Vercel. Open to work and internships — my rule is simple: consistency beats motivation.',
   ],
   bioJa: [
     '大学生でありながら、実際に使われるフルスタックWebアプリを開発しています。JavaScript / TypeScript / React / Node.jsを軸に、MongoDBやPostgreSQLを組み合わせたモダンな構成でプロダクトを形にしています。',
-    '現在はバックエンドの基礎とシステム設計を深めながら、GitHubやVercel上で公開してプロジェクトをビルド・デプロイしています。',
-    '仕事の依頼やインターンシップの機会を探しています。モットーは「一貫性はモチベーションに勝る」。',
+    'バックエンドに加えて、WebGPUによる3DインタラクティブサイトやリアルタイムなWeb体験も構築しています。このポートフォリオ自体が、WebGL / WebGPUのライブシーンと空間オーディオで動作しています。',
+    '現在はバックエンドの基礎とシステム設計を深めながら、GitHubやVercel上で公開してプロジェクトをビルド・デプロイしています。仕事の依頼やインターンシップも歓迎です。モットーは「一貫性はモチベーションに勝る」。',
   ],
 } as const
 
@@ -76,11 +76,11 @@ export const hubCards: HubCard[] = [
     code: 'HUB-02',
     title: 'TRANSMISSION & BIO',
     kanji: '概要',
-    subtitle: 'FULL-STACK DEVELOPER',
-    tagline: 'College student building real-world full-stack apps — React, Node, and clean backends, in public, one consistent push at a time.',
+    subtitle: 'FULL-STACK × WEBGPU',
+    tagline: 'College student shipping real-world full-stack apps and WebGPU-powered 3D interactive sites — React, Node, and clean backends, in public.',
     metricLabel: 'STATUS',
     metricValue: 'OPEN TO WORK',
-    tags: ['REACT', 'NODE.JS', 'MONGODB', 'POSTGRESQL'],
+    tags: ['REACT', 'NODE.JS', 'WEBGPU', 'THREE.JS'],
     position: [-4.2, 1.8],
   },
   {
@@ -113,10 +113,10 @@ export const hubCards: HubCard[] = [
     title: 'DIRECT UPLINK',
     kanji: '通信',
     subtitle: 'INQUIRIES & AVAILABILITY',
-    tagline: 'Open to work & internships — building real-world full-stack apps remotely, one consistent push at a time.',
+    tagline: 'Open to work & internships — full-stack apps and WebGPU 3D interactive sites, built in public, one consistent push at a time.',
     metricLabel: 'STATUS',
     metricValue: 'AVAILABLE',
-    tags: ['REMOTE', 'INTERNSHIPS', 'FULL-STACK', 'VERCEL'],
+    tags: ['REMOTE', 'INTERNSHIPS', 'WEBGPU', '3D'],
     position: [8.4, 0.2],
   },
 ]

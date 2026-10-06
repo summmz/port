@@ -420,11 +420,11 @@ export function Hud({
               </h1>
             </div>
             <span className="font-sans text-[0.625rem] sm:text-[0.7rem] font-bold text-cyan tracking-wide mt-0.5 block">
-              フルスタック デベロッパー
+              フルスタック × WEBGPU デベロッパー
             </span>
           </button>
           <p className="font-mono text-[0.625rem] font-semibold text-white/50 tracking-widest mt-1 uppercase hidden sm:block short:hidden!">
-            FULL-STACK DEVELOPMENT • REACT & NODE
+            FULL-STACK × WEBGPU • 3D INTERACTIVE
           </p>
         </div>
 
@@ -1129,8 +1129,8 @@ export function Hud({
                       PRIMARY TRANSMISSION FREQUENCY
                     </span>
                     <p className="font-sans text-xs text-white/80 leading-relaxed">
-                      Open to work & internships — React, Node, and clean backends, shipped in
-                      public. Inbox open, same energy as the gym.
+                      Open to work & internships — full-stack apps, WebGPU shaders, and 3D
+                      interactive sites, shipped in public. Inbox open, same energy as the gym.
                     </p>
                     <div className="flex items-center justify-between bg-black/70 border border-white/10 rounded-xl p-3.5">
                       <span className="font-mono text-xs sm:text-sm text-white font-bold truncate mr-2">
@@ -1205,9 +1205,18 @@ export function Hud({
                 onClick={handleClose}
                 className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white/5 hover:bg-accent/15 border border-white/10 hover:border-cyan/50 text-white/70 hover:text-cyan font-mono text-xs font-bold tracking-widest transition-all duration-200 active:scale-95 group"
               >
-                <span className="text-[0.65rem] group-hover:text-accent transition-colors">✕</span>
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  className="w-3.5 h-3.5 shrink-0 group-hover:text-accent transition-colors"
+                >
+                  <path d="M6 6l12 12M18 6L6 18" />
+                </svg>
                 <span>COLLAPSE CARD</span>
-                <span className="text-[0.625rem] text-white/30 bg-black/40 px-1.5 py-0.5 rounded border border-white/15">ESC</span>
+                <span className="hidden sm:inline text-[0.625rem] text-white/30 bg-black/40 px-1.5 py-0.5 rounded border border-white/15">ESC</span>
               </button>
 
               {/* Right: play/pause mini control */}
