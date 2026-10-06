@@ -409,22 +409,22 @@ export function Hud({
           >
             <div className="relative">
               <h1 className="font-mono text-xl sm:text-2xl md:text-3xl short:text-lg! font-black tracking-wider text-accent flex items-center gap-1.5 group-hover:text-white transition-colors duration-200">
-                SMSY <span className="text-xs sm:text-sm font-normal align-super">©</span> 26'
+                SUMIT <span className="text-xs sm:text-sm font-normal align-super">©</span> 26'
               </h1>
               <h1
                 aria-hidden="true"
                 className="font-mono text-xl sm:text-2xl md:text-3xl short:text-lg! font-black tracking-wider text-cyan flex items-center gap-1.5 absolute top-0 left-0 pointer-events-none opacity-0 group-hover:opacity-100"
                 style={{ animation: 'glitch-clip 0.5s steps(1) infinite', mixBlendMode: 'screen' as const }}
               >
-                SMSY <span className="text-xs sm:text-sm font-normal align-super">©</span> 26'
+                SUMIT <span className="text-xs sm:text-sm font-normal align-super">©</span> 26'
               </h1>
             </div>
             <span className="font-sans text-[0.625rem] sm:text-[0.7rem] font-bold text-cyan tracking-wide mt-0.5 block">
-              クリエイティブ テクノロジスト
+              フルスタック デベロッパー
             </span>
           </button>
           <p className="font-mono text-[0.625rem] font-semibold text-white/50 tracking-widest mt-1 uppercase hidden sm:block short:hidden!">
-            CREATIVE DEVELOPMENT • WEBGPU ARCHITECTURE
+            FULL-STACK DEVELOPMENT • REACT & NODE
           </p>
         </div>
 
@@ -815,7 +815,7 @@ export function Hud({
             {/* Bottom-Left coordinate */}
             <div className="absolute bottom-10 left-0 font-mono text-[0.65rem] text-accent/60 flex items-center gap-1.5">
               <span className="text-accent font-bold">+</span>
-              <span>6DOF ACTIVE // TILT ±12° // PARIS [UTC+1]</span>
+              <span>6DOF ACTIVE // TILT ±12° // REMOTE [UTC]</span>
             </div>
             {/* Corner brackets */}
             <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-cyan/40" />
@@ -1129,8 +1129,8 @@ export function Hud({
                       PRIMARY TRANSMISSION FREQUENCY
                     </span>
                     <p className="font-sans text-xs text-white/80 leading-relaxed">
-                      Direct inquiries for creative engineering, WebGPU architecture, and spatial
-                      design commissions.
+                      Open to work & internships — React, Node, and clean backends, shipped in
+                      public. Inbox open, same energy as the gym.
                     </p>
                     <div className="flex items-center justify-between bg-black/70 border border-white/10 rounded-xl p-3.5">
                       <span className="font-mono text-xs sm:text-sm text-white font-bold truncate mr-2">
